@@ -1,0 +1,60 @@
+import * as THREE from 'three';
+import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
+
+let scene, camera, renderer, score = 0;
+let balls = [];
+
+function init() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    document.body.appendChild(renderer.domElement);
+    
+    document.body.appendChild(ARButton.createButton(renderer));
+    
+    createBall();
+    
+    renderer.setAnimationLoop(animate);
+}
+
+function createBall() {
+    const geometry = new THREE.SphereGeometry(0.1, 16, 16);
+    const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const ball = new THREE.Mesh(geometry, material);
+    
+    ball.position.set(Math.random() - 0.5, Math.random(), -Math.random() * 2 - 1);
+    scene.add(ball);
+    balls.push(ball);
+    
+    ball.userData = { clickable: true };
+}
+
+function onSelect(event) {
+    const intersects = getIntersects(event);
+    intersects.forEach(intersect => {
+        if (intersect.object.userData.clickable) {
+            scene.remove(intersect.object);
+            balls = balls.filter(b => b !== intersect.object);
+            score++;
+            console.log(`Score: ${score}`);
+            createBall();
+        }
+    });
+}
+
+function getIntersects(event) {
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    raycaster.setFromCamera(pointer, camera);
+    return raycaster.intersectObjects(balls);
+}
+
+function animate() {
+    renderer.render(scene, camera);
+}
+
+document.addEventListener('click', onSelect);
+
+init();
